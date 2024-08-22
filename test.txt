@@ -118,3 +118,86 @@
 117days ago
 118days ago
 119days ago
+model 
+
+from django.db import models
+
+class UploadedPDF(models.Model):
+    pdf_file = models.FileField(upload_to='pdfs/')
+    compressed_file = models.FileField(upload_to='compressed_pdfs/', null=True, blank=True)
+    upload_date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.pdf_file.name
+
+
+views.py
+
+from django.shortcuts import render, redirect
+from django.http import HttpResponse
+from .models import UploadedPDF
+import PyPDF2
+import io
+
+def upload_pdf(request):
+    if request.method == 'POST':
+        pdf_file = request.FILES['pdf_file']
+        uploaded_pdf = UploadedPDF.objects.create(pdf_file=pdf_file)
+
+        # Compress the PDF using PyPDF2
+        with open(pdf_file.path, 'rb') as pdf_input, io.BytesIO() as pdf_output:
+            pdf_reader = PyPDF2.PdfReader(pdf_input)
+            pdf_writer = PyPDF2.PdfWriter()
+            for page in pdf_reader.pages:
+                pdf_writer.add_page(page)
+            pdf_writer.write(pdf_output)
+
+        # Save the compressed PDF
+        uploaded_pdf.compressed_file.save(f"{pdf_file.name}_compressed.pdf", pdf_output)
+        pdf_output.seek(0)
+
+        return redirect('pdf_list')
+    else:
+        return render(request, 'compressor/upload_pdf.html')
+
+def pdf_list(request):
+    pdfs = UploadedPDF.objects.all()
+    return render(request, 'compressor/pdf_list.html', {'pdfs': pdfs})
+
+def download_compressed_pdf(request, pdf_id):
+    pdf = UploadedPDF.objects.get(id=pdf_id)
+    response = HttpResponse(pdf.compressed_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{pdf.compressed_file.name}"'
+    return response
+
+
+templates 
+
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="file" name="pdf_file">
+    <button type="submit">Upload PDF</button>
+</form>
+
+{% for pdf in pdfs %}
+    <li>
+        <a href="{% url 'download_compressed_pdf' pdf.id %}">{{ pdf.pdf_file.name }}</a>
+    </li>
+{% endfor %}
+
+
+urls.py
+
+from django.urls import path
+from compressor import views
+
+urlpatterns = [
+    path('upload/', views.upload_pdf, name='upload_pdf'),
+    path('list/', views.pdf_list, name='pdf_list'),
+    path('download/<int:pdf_id>/', views.download_compressed_pdf, name='download_compressed_pdf'),
+]
+
+
+
+
+
