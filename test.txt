@@ -201,3 +201,56 @@ urlpatterns = [
 
 
 
+
+
+
+import streamlit as st
+import aspose.pdf as ap
+import os
+
+# Streamlit app title
+st.title("PDF Compressor")
+
+# File uploader widget
+uploaded_file = st.file_uploader("Upload a PDF file to compress", type=["pdf"])
+
+# Button to trigger compression
+if uploaded_file is not None:
+    # Save the uploaded file temporarily
+    input_path = os.path.join("temp", uploaded_file.name)
+    output_path = os.path.join("temp", "compressed_" + uploaded_file.name)
+
+    # Ensure the temp directory exists
+    os.makedirs("temp", exist_ok=True)
+
+    with open(input_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+    
+    # Display the file size before compression
+    original_size = os.path.getsize(input_path)
+    st.write(f"Original file size: {original_size / 1024:.2f} KB")
+
+    # Compress the PDF using Aspose.PDF
+    comppdf = ap.Document(input_path)
+    pdfopti = ap.optimization.OptimizationOptions()
+    pdfopti.image_compression_options.compress_images = True
+    pdfopti.image_compression_options.image_quality = 10
+    comppdf.optimize_resources(pdfopti)
+    comppdf.save(output_path)
+
+    # Display the file size after compression
+    compressed_size = os.path.getsize(output_path)
+    st.write(f"Compressed file size: {compressed_size / 1024:.2f} KB")
+
+    # Provide download link for the compressed file
+    with open(output_path, "rb") as f:
+        st.download_button(
+            label="Download Compressed PDF",
+            data=f,
+            file_name="compressed_" + uploaded_file.name,
+            mime="application/pdf"
+        )
+
+
+
+
