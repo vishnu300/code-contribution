@@ -1,0 +1,26 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Compressor</title>
+    <script src="{% static 'javasdd.js' %}"></script>
+    <link rel="stylesheet" href="{% static "document.css"%}">
+</head>
+  
+<body>
+<div class ="pdf_arrange">
+    <form id="compress-form" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="file" id="pdf-file-input" name="pdf_file" required>
+        <button type="submit">Compress PDF</button>
+    </form>
+</div>
+
+    <div id="file-info" style="display: none;">
+        <p>Original Size: <span id="original-size"></span> KB</p>
+        <p>Compressed Size: <span id="compressed-size"></span> KB</p>
+    </div>
+</body>
+</html>
